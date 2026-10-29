@@ -1,0 +1,41 @@
+diff --git a/lib/rack/utils.rb b/lib/rack/utils.rb
+index d8bc3fc..ffa48f9 100644
+--- a/lib/rack/utils.rb
++++ b/lib/rack/utils.rb
+@@ -372,6 +372,14 @@ module Rack
+     #   set_cookie_header("myname", {value: "myvalue", max_age: 10})
+     #   # => "myname=myvalue; max-age=10"
+     #
++    # Cookie attributes that are interpolated into the +set-cookie+ header must not
++    # contain separators or control characters, otherwise an application that passes
++    # request-derived data into them can inject arbitrary header content (CWE-113).
++    VALID_COOKIE_DOMAIN = /\A[!#$%&'*+\-.^_`|~0-9A-Za-z:\/\[\]]+\z/.freeze
++    VALID_COOKIE_PATH = /\A[!#$%&'*+\-.^_`|~0-9A-Za-z:\/\[\]]+\z/.freeze
++    VALID_COOKIE_MAX_AGE = /\A\d+\z/.freeze
++    private_constant :VALID_COOKIE_DOMAIN, :VALID_COOKIE_PATH, :VALID_COOKIE_MAX_AGE
++
+     def set_cookie_header(key, value)
+       unless key =~ VALID_COOKIE_KEY
+         raise ArgumentError, "invalid cookie key: #{key.inspect}"
+@@ -379,6 +387,21 @@ module Rack
+ 
+       case value
+       when Hash
++        if value[:domain]
++          unless VALID_COOKIE_DOMAIN.match?(value[:domain].to_s)
++            raise ArgumentError, "invalid cookie domain: #{value[:domain].inspect}"
++          end
++        end
++        if value[:path]
++          unless VALID_COOKIE_PATH.match?(value[:path].to_s)
++            raise ArgumentError, "invalid cookie path: #{value[:path].inspect}"
++          end
++        end
++        if value[:max_age]
++          unless VALID_COOKIE_MAX_AGE.match?(value[:max_age].to_s)
++            raise ArgumentError, "invalid cookie max_age: #{value[:max_age].inspect}"
++          end
++        end
+         domain  = "; domain=#{value[:domain]}"   if value[:domain]
+         path    = "; path=#{value[:path]}"       if value[:path]
+         max_age = "; max-age=#{value[:max_age]}" if value[:max_age]
